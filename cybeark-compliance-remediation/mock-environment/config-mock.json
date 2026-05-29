@@ -1,0 +1,17 @@
+{
+  "pvwaBaseUrl": "http://localhost:8080",
+  "complianceReportPath": "../sample-data/sample-compliance-report.csv",
+  "cmdbReportPath": "../sample-data/sample-cmdb-report.csv",
+  "outputDirectory": "../output",
+  "logDirectory": "../logs",
+  "enableExcelOutput": false,
+  "enableMCPIntegration": false,
+  "maxRetries": 2,
+  "retryDelaySeconds": 1,
+  "apiTimeoutSeconds": 10,
+  "networkConnectivity": {
+    "testTimeout": 2,
+    "parallelTests": true,
+    "maxConcurrentTests": 5
+  }
+}

@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PromptFile>
+    <DeviceType>F5-BigIP</DeviceType>
+    <Policy>F5</Policy>
+    
+    <!-- Main Prompts Section -->
+    <Prompts>
+        <!-- Login Username Prompt -->
+        <Prompt id="1">
+            <Regex>login:\s*$|Username:\s*$</Regex>
+            <Response>%%Username%%</Response>
+            <Nl>true</Nl>
+            <Optional>false</Optional>
+        </Prompt>
+        
+        <!-- Password Prompt -->
+        <Prompt id="2">
+            <Regex>Password:\s*$</Regex>
+            <Response>%%Password%%</Response>
+            <Nl>true</Nl>
+            <Optional>false</Optional>
+        </Prompt>
+        
+        <!-- Command Prompt (Shell) -->
+        <Prompt id="3">
+            <Regex>[\$#>]\s*$</Regex>
+            <Response></Response>
+            <Nl>false</Nl>
+            <Optional>false</Optional>
+        </Prompt>
+        
+        <!-- TMSH Prompt (F5 specific) -->
+        <Prompt id="4">
+            <Regex>\(tmos\)#\s*$</Regex>
+            <Response></Response>
+            <Nl>false</Nl>
+            <Optional>true</Optional>
+        </Prompt>
+        
+        <!-- Login Failed -->
+        <Prompt id="5">
+            <Regex>Login incorrect|Authentication failed|Access denied|Permission denied</Regex>
+            <Response>%%Fail%%</Response>
+            <Nl>false</Nl>
+            <Optional>true</Optional>
+        </Prompt>
+        
+        <!-- Connection Issues -->
+        <Prompt id="6">
+            <Regex>Connection refused|Connection closed|Connection reset</Regex>
+            <Response>%%Fail%%</Response>
+            <Nl>false</Nl>
+            <Optional>true</Optional>
+        </Prompt>
+    </Prompts>
+    
+    <!-- Reconcile Prompts -->
+    <ReconcilePrompts>
+        <!-- Command Prompt before reconcile -->
+        <Prompt id="10">
+            <Regex>[\$#>]\s*$|\(tmos\)#\s*$</Regex>
+            <Response></Response>
+            <Nl>false</Nl>
+            <Optional>false</Optional>
+        </Prompt>
+        
+        <!-- Success confirmation -->
+        <Prompt id="11">
+            <Regex>[\$#>]\s*$|\(tmos\)#\s*$</Regex>
+            <Response></Response>
+            <Nl>false</Nl>
+            <Optional>false</Optional>
+        </Prompt>
+        
+        <!-- Error detection -->
+        <Prompt id="12">
+            <Regex>error|failed|invalid|denied</Regex>
+            <Response>%%Fail%%</Response>
+            <Nl>false</Nl>
+            <Optional>true</Optional>
+        </Prompt>
+    </ReconcilePrompts>
+    
+    <!-- Change Prompts (for interactive password change if needed) -->
+    <ChangePrompts>
+        <Prompt id="20">
+            <Regex>[\$#>]\s*$|\(tmos\)#\s*$</Regex>
+            <Response></Response>
+            <Nl>false</Nl>
+            <Optional>false</Optional>
+        </Prompt>
+    </ChangePrompts>
+    
+    <!-- Verify Prompts -->
+    <VerifyPrompts>
+        <Prompt id="30">
+            <Regex>login:\s*$|Username:\s*$</Regex>
+            <Response>%%Username%%</Response>
+            <Nl>true</Nl>
+            <Optional>false</Optional>
+        </Prompt>
+        
+        <Prompt id="31">
+            <Regex>Password:\s*$</Regex>
+            <Response>%%NewPassword%%</Response>
+            <Nl>true</Nl>
+            <Optional>false</Optional>
+        </Prompt>
+        
+        <Prompt id="32">
+            <Regex>[\$#>]\s*$|\(tmos\)#\s*$</Regex>
+            <Response></Response>
+            <Nl>false</Nl>
+            <Optional>false</Optional>
+        </Prompt>
+        
+        <Prompt id="33">
+            <Regex>Login incorrect|Authentication failed</Regex>
+            <Response>%%Fail%%</Response>
+            <Nl>false</Nl>
+            <Optional>true</Optional>
+        </Prompt>
+    </VerifyPrompts>
+    
+    <!-- Logoff Prompts -->
+    <LogoffPrompts>
+        <Prompt id="40">
+            <Regex>[\$#>]\s*$|\(tmos\)#\s*$</Regex>
+            <Response>exit</Response>
+            <Nl>true</Nl>
+            <Optional>false</Optional>
+        </Prompt>
+    </LogoffPrompts>
+    
+</PromptFile>
+
+<!-- Made with Bob -->

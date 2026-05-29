@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ProcessFile>
+    <DeviceType>F5-BigIP</DeviceType>
+    <Policy>F5</Policy>
+    
+    <!-- Reconcile Process -->
+    <Reconcile>
+        <Enabled>Yes</Enabled>
+        <Method>Script</Method>
+        <ScriptPath>scripts/reconcile_f5.sh</ScriptPath>
+        <Timeout>120</Timeout>
+        
+        <!-- Reconcile Steps -->
+        <Steps>
+            <!-- Step 1: Send reconcile command -->
+            <Step id="1">
+                <Command>modify /auth user %%Username%% password %%NewPassword%%</Command>
+                <ExpectedPrompt>10</ExpectedPrompt>
+                <Timeout>30</Timeout>
+                <Description>Execute F5 password change command</Description>
+            </Step>
+            
+            <!-- Step 2: Verify command execution -->
+            <Step id="2">
+                <Command>echo $?</Command>
+                <ExpectedPrompt>11</ExpectedPrompt>
+                <Timeout>10</Timeout>
+                <Description>Check command exit status</Description>
+            </Step>
+            
+            <!-- Step 3: Validate via log file -->
+            <Step id="3">
+                <Command>scripts/validate_f5_change.sh %%Username%%</Command>
+                <ExpectedPrompt>11</ExpectedPrompt>
+                <Timeout>30</Timeout>
+                <Description>Validate password change in /var/log/secure</Description>
+            </Step>
+        </Steps>
+        
+        <!-- Post-Reconcile Actions -->
+        <PostActions>
+            <Action>
+                <Type>Verify</Type>
+                <Description>Verify new password works</Description>
+            </Action>
+        </PostActions>
+    </Reconcile>
+    
+    <!-- Change Process (if needed for interactive change) -->
+    <Change>
+        <Enabled>Yes</Enabled>
+        <Method>Script</Method>
+        <ScriptPath>scripts/change_f5.sh</ScriptPath>
+        <Timeout>120</Timeout>
+        
+        <Steps>
+            <Step id="1">
+                <Command>modify /auth user %%Username%% password %%NewPassword%%</Command>
+                <ExpectedPrompt>20</ExpectedPrompt>
+                <Timeout>30</Timeout>
+                <Description>Change F5 user password</Description>
+            </Step>
+        </Steps>
+    </Change>
+    
+    <!-- Verify Process -->
+    <Verify>
+        <Enabled>Yes</Enabled>
+        <Method>Login</Method>
+        <Timeout>60</Timeout>
+        
+        <Steps>
+            <!-- Step 1: Disconnect current session -->
+            <Step id="1">
+                <Command>exit</Command>
+                <ExpectedPrompt>40</ExpectedPrompt>
+                <Timeout>10</Timeout>
+                <Description>Logout from current session</Description>
+            </Step>
+            
+            <!-- Step 2: Reconnect with new password -->
+            <Step id="2">
+                <Command>Connect</Command>
+                <ExpectedPrompt>30</ExpectedPrompt>
+                <Timeout>30</Timeout>
+                <Description>Reconnect to verify new password</Description>
+            </Step>
+            
+            <!-- Step 3: Verify login successful -->
+            <Step id="3">
+                <Command>whoami</Command>
+                <ExpectedPrompt>32</ExpectedPrompt>
+                <Timeout>10</Timeout>
+                <Description>Confirm successful login</Description>
+            </Step>
+        </Steps>
+    </Verify>
+    
+    <!-- Logoff Process -->
+    <Logoff>
+        <Enabled>Yes</Enabled>
+        <Timeout>30</Timeout>
+        
+        <Steps>
+            <Step id="1">
+                <Command>exit</Command>
+                <ExpectedPrompt>40</ExpectedPrompt>
+                <Timeout>10</Timeout>
+                <Description>Logout from F5 device</Description>
+            </Step>
+        </Steps>
+    </Logoff>
+    
+    <!-- Connection Settings -->
+    <ConnectionSettings>
+        <Protocol>SSH</Protocol>
+        <Port>22</Port>
+        <ConnectionTimeout>60</ConnectionTimeout>
+        <CommandTimeout>30</CommandTimeout>
+        <MaxRetries>3</MaxRetries>
+        <RetryInterval>5</RetryInterval>
+    </ConnectionSettings>
+    
+    <!-- Validation Settings -->
+    <ValidationSettings>
+        <LogFile>/var/log/secure</LogFile>
+        <ValidateByTimestamp>true</ValidateByTimestamp>
+        <TimestampTolerance>60</TimestampTolerance>
+        <SuccessPattern>password changed for user</SuccessPattern>
+        <FailurePattern>password change failed|authentication failure</FailurePattern>
+    </ValidationSettings>
+    
+    <!-- Error Handling -->
+    <ErrorHandling>
+        <OnTimeout>Fail</OnTimeout>
+        <OnConnectionError>Retry</OnConnectionError>
+        <OnAuthenticationError>Fail</OnAuthenticationError>
+        <OnValidationError>Fail</OnValidationError>
+    </ErrorHandling>
+    
+</ProcessFile>
+
+<!-- Made with Bob -->

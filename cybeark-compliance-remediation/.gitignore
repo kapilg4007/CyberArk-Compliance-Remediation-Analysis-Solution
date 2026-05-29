@@ -1,0 +1,73 @@
+# CyberArk Compliance Remediation - Git Ignore File
+
+# Configuration files with sensitive data
+config/config.json
+config/token.secure
+config/*.secure
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Output files
+output/
+*.xlsx
+*.csv
+
+# Log files
+logs/
+*.log
+*.txt
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# PowerShell transcript files
+Transcript_*.txt
+
+# Node.js dependencies (MCP integration)
+mcp-integration/node_modules/
+mcp-integration/package-lock.json
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Windows files
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Compressed files
+*.zip
+*.tar.gz
+*.rar
+
+# Test files
+test-output/
+test-results/
+
+# Credentials and secrets
+*.key
+*.pem
+*.pfx
+*.p12
+credentials.json
+secrets.json
+
+# Keep directory structure but ignore contents
+!output/.gitkeep
+!logs/.gitkeep
+
+# Made with Bob

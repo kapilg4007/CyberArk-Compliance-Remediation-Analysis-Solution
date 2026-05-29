@@ -1,0 +1,41 @@
+{
+  "_comment": "CyberArk Compliance Remediation Analysis Configuration Template",
+  "_instructions": "Copy this file to config.json and update with your environment details",
+  
+  "pvwaBaseUrl": "https://your-pvwa.company.com",
+  "complianceReportPath": "C:/Reports/compliance-report.csv",
+  "cmdbReportPath": "C:/Reports/cmdb-report.csv",
+  "outputDirectory": "C:/Reports/Output",
+  "logDirectory": "C:/Reports/Logs",
+  
+  "enableExcelOutput": true,
+  "enableMCPIntegration": false,
+  
+  "mcpServerUrl": "http://localhost:3000",
+  "ibmIcaEndpoint": "https://ica.company.com/api/v1",
+  
+  "maxRetries": 3,
+  "retryDelaySeconds": 5,
+  "apiTimeoutSeconds": 30,
+  
+  "networkConnectivity": {
+    "testTimeout": 5,
+    "parallelTests": true,
+    "maxConcurrentTests": 10
+  },
+  
+  "reporting": {
+    "includeDetailedLogs": true,
+    "compressOldReports": true,
+    "retentionDays": 90
+  },
+  
+  "notifications": {
+    "enabled": false,
+    "emailRecipients": [
+      "cybeark-team@company.com"
+    ],
+    "sendOnCompletion": true,
+    "sendOnErrors": true
+  }
+}

@@ -1,0 +1,233 @@
+{
+  "mcpServer": {
+    "name": "cybeark-compliance-mcp-server",
+    "version": "1.0.0",
+    "description": "MCP Server for CyberArk Compliance Remediation Analysis with IBM ICA Integration",
+    "port": 3000,
+    "host": "localhost",
+    "protocol": "http"
+  },
+  "ibmICA": {
+    "enabled": true,
+    "endpoint": "https://ica.company.com/api/v1",
+    "authentication": {
+      "type": "oauth2",
+      "tokenEndpoint": "https://ica.company.com/oauth/token",
+      "clientIdEnvVar": "IBM_ICA_CLIENT_ID",
+      "clientSecretEnvVar": "IBM_ICA_CLIENT_SECRET"
+    },
+    "workflows": {
+      "complianceAnalysisComplete": {
+        "enabled": true,
+        "workflowId": "compliance-remediation-workflow",
+        "triggerOnRemediableAccounts": true,
+        "minimumRemediableThreshold": 1
+      },
+      "highPriorityRemediation": {
+        "enabled": true,
+        "workflowId": "high-priority-remediation",
+        "triggerOnCriticalSystems": true,
+        "criticalityLevels": ["Critical", "High"]
+      },
+      "cmdbReconciliation": {
+        "enabled": true,
+        "workflowId": "cmdb-sync-workflow",
+        "triggerOnMismatches": true
+      }
+    },
+    "notifications": {
+      "enabled": true,
+      "channels": {
+        "email": {
+          "enabled": true,
+          "recipients": ["cybeark-team@company.com", "security-ops@company.com"],
+          "sendOnCompletion": true,
+          "sendOnErrors": true
+        },
+        "slack": {
+          "enabled": true,
+          "webhookUrlEnvVar": "SLACK_WEBHOOK_URL",
+          "channel": "#cybeark-compliance",
+          "sendOnRemediableAccounts": true
+        },
+        "teams": {
+          "enabled": false,
+          "webhookUrlEnvVar": "TEAMS_WEBHOOK_URL"
+        }
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "analyze_compliance",
+      "description": "Analyze CyberArk compliance reports and identify remediation opportunities",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "complianceReportPath": {
+            "type": "string",
+            "description": "Path to the compliance report CSV file"
+          },
+          "cmdbReportPath": {
+            "type": "string",
+            "description": "Path to the CMDB report CSV file"
+          },
+          "cyberarkToken": {
+            "type": "string",
+            "description": "CyberArk authentication token (secure)"
+          }
+        },
+        "required": ["complianceReportPath", "cmdbReportPath", "cyberarkToken"]
+      }
+    },
+    {
+      "name": "get_remediation_status",
+      "description": "Get the status of remediation activities",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "correlationId": {
+            "type": "string",
+            "description": "Correlation ID from previous analysis"
+          }
+        },
+        "required": ["correlationId"]
+      }
+    },
+    {
+      "name": "trigger_remediation_workflow",
+      "description": "Trigger IBM ICA remediation workflow for specific accounts",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "accountIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of account IDs to remediate"
+          },
+          "workflowType": {
+            "type": "string",
+            "enum": ["reconcile", "verify", "change"],
+            "description": "Type of remediation workflow"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"],
+            "description": "Priority level for remediation"
+          }
+        },
+        "required": ["accountIds", "workflowType"]
+      }
+    },
+    {
+      "name": "export_compliance_report",
+      "description": "Export compliance analysis report in various formats",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "correlationId": {
+            "type": "string",
+            "description": "Correlation ID from analysis"
+          },
+          "format": {
+            "type": "string",
+            "enum": ["excel", "csv", "json", "pdf"],
+            "description": "Output format"
+          },
+          "outputPath": {
+            "type": "string",
+            "description": "Path to save the report"
+          }
+        },
+        "required": ["correlationId", "format"]
+      }
+    }
+  ],
+  "resources": [
+    {
+      "uri": "compliance://analysis/latest",
+      "name": "Latest Compliance Analysis",
+      "description": "Most recent compliance analysis results",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "compliance://metrics/summary",
+      "name": "Compliance Metrics Summary",
+      "description": "Summary of compliance metrics and trends",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "compliance://accounts/remediable",
+      "name": "Remediable Accounts",
+      "description": "List of accounts that can be remediated",
+      "mimeType": "application/json"
+    }
+  ],
+  "prompts": [
+    {
+      "name": "compliance_summary",
+      "description": "Generate executive summary of compliance analysis",
+      "arguments": [
+        {
+          "name": "correlationId",
+          "description": "Analysis correlation ID",
+          "required": true
+        },
+        {
+          "name": "includeRecommendations",
+          "description": "Include remediation recommendations",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "remediation_plan",
+      "description": "Generate detailed remediation plan",
+      "arguments": [
+        {
+          "name": "accountIds",
+          "description": "Specific account IDs to include",
+          "required": false
+        },
+        {
+          "name": "priority",
+          "description": "Filter by priority level",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "outputs": [
+      {
+        "type": "file",
+        "path": "./logs/mcp-server.log",
+        "maxSize": "10MB",
+        "maxFiles": 5
+      },
+      {
+        "type": "console",
+        "colorize": true
+      }
+    ]
+  },
+  "security": {
+    "enableCORS": true,
+    "allowedOrigins": ["https://ica.company.com"],
+    "enableRateLimiting": true,
+    "rateLimitWindow": "15m",
+    "rateLimitMax": 100,
+    "requireAuthentication": true,
+    "authenticationMethod": "bearer-token"
+  },
+  "performance": {
+    "cacheEnabled": true,
+    "cacheTTL": 300,
+    "maxConcurrentRequests": 10,
+    "requestTimeout": 30000
+  }
+}

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberArk Compliance Remediation Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .metric-card h3 {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .metric-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .metric-card .change {
+            font-size: 0.9em;
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .metric-card.total .value { color: #667eea; }
+        .metric-card.compliant .value { color: #10b981; }
+        .metric-card.failed .value { color: #ef4444; }
+        .metric-card.remediable .value { color: #f59e0b; }
+        .metric-card.projected .value { color: #8b5cf6; }
+
+        .change.positive {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .change.negative {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .chart-card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .table-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .table-card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-bar select, .filter-bar input {
+            padding: 10px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.9em;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .filter-bar select:focus, .filter-bar input:focus {
+            border-color: #667eea;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f9fafb;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #6b7280;
+        }
+
+        tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-compliant {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-non-compliant {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-remediable {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .action-button {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s ease;
+        }
+
+        .action-button:hover {
+            background: #5568d3;
+        }
+
+        .action-button:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .timestamp {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 CyberArk Compliance Remediation Dashboard</h1>
+            <p>Real-time compliance analysis and remediation tracking with IBM ICA integration</p>
+        </div>
+
+        <div id="loading" class="loading">
+            Loading compliance data...
+        </div>
+
+        <div id="dashboard" style="display: none;">
+            <!-- Metrics Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card total">
+                    <h3>Total CPM-Managed</h3>
+                    <div class="value" id="totalAccounts">0</div>
+                    <div class="change">Accounts</div>
+                </div>
+
+                <div class="metric-card compliant">
+                    <h3>Compliant Accounts</h3>
+                    <div class="value" id="compliantAccounts">0</div>
+                    <div class="change positive" id="compliancePercent">0%</div>
+                </div>
+
+                <div class="metric-card failed">
+                    <h3>Failed Accounts</h3>
+                    <div class="value" id="failedAccounts">0</div>
+                    <div class="change negative" id="failedPercent">0%</div>
+                </div>
+
+                <div class="metric-card remediable">
+                    <h3>Remediable Accounts</h3>
+                    <div class="value" id="remediableAccounts">0</div>
+                    <div class="change positive" id="remediablePercent">0%</div>
+                </div>
+
+                <div class="metric-card projected">
+                    <h3>Projected Compliance</h3>
+                    <div class="value" id="projectedCompliance">0%</div>
+                    <div class="change positive" id="complianceIncrease">+0%</div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h2>📊 Compliance Overview</h2>
+                    <div class="chart-container">
+                        <canvas id="complianceChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h2>📈 Compliance Projection</h2>
+                    <div class="chart-container">
+                        <canvas id="projectionChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h2>🔧 Remediation Breakdown</h2>
+                    <div class="chart-container">
+                        <canvas id="remediationChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h2>🖥️ Platform Distribution</h2>
+                    <div class="chart-container">
+                        <canvas id="platformChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accounts Table -->
+            <div class="table-card">
+                <h2>📋 Account Details & Remediation Status</h2>
+                
+                <div class="filter-bar">
+                    <select id="statusFilter">
+                        <option value="all">All Status</option>
+                        <option value="compliant">Compliant</option>
+                        <option value="non-compliant">Non-Compliant</option>
+                        <option value="remediable">Remediable Only</option>
+                    </select>
+
+                    <select id="platformFilter">
+                        <option value="all">All Platforms</option>
+                    </select>
+
+                    <input type="text" id="searchInput" placeholder="Search accounts...">
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table id="accountsTable">
+                        <thead>
+                            <tr>
+                                <th>Account ID</th>
+                                <th>Account Name</th>
+                                <th>Platform</th>
+                                <th>Address</th>
+                                <th>Status</th>
+                                <th>Remediable</th>
+                                <th>Recommendation</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accountsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="timestamp" id="timestamp"></div>
+    </div>
+
+    <script>
+        // Global data storage
+        let metricsData = null;
+        let accountsData = [];
+        let charts = {};
+
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadData();
+        });
+
+        async function loadData() {
+            try {
+                // Load metrics
+                const metricsResponse = await fetch('../output/sample-output/ComplianceMetrics_20260527_080000.csv');
+                const metricsText = await metricsResponse.text();
+                const metricsParsed = Papa.parse(metricsText, { header: true });
+                metricsData = metricsParsed.data[0];
+
+                // Load accounts
+                const accountsResponse = await fetch('../output/sample-output/RemediationSummary_20260527_080000.csv');
+                const accountsText = await accountsResponse.text();
+                const accountsParsed = Papa.parse(accountsText, { header: true });
+                accountsData = accountsParsed.data.filter(row => row.AccountID);
+
+                // Hide loading, show dashboard
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+
+                // Render dashboard
+                renderMetrics();
+                renderCharts();
+                renderTable();
+                updateTimestamp();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('loading').innerHTML = 
+                    '<p style="color: #ef4444;">Error loading data. Please ensure sample output files exist.</p>';
+            }
+        }
+
+        function renderMetrics() {
+            document.getElementById('totalAccounts').textContent = metricsData.TotalCPMManagedAccounts;
+            document.getElementById('compliantAccounts').textContent = metricsData.CompliantAccounts;
+            document.getElementById('failedAccounts').textContent = metricsData.FailedAccounts;
+            document.getElementById('remediableAccounts').textContent = metricsData.RemediableFailedAccounts;
+            
+            document.getElementById('compliancePercent').textContent = metricsData.OriginalCompliancePercent + '%';
+            document.getElementById('failedPercent').textContent = 
+                ((metricsData.FailedAccounts / metricsData.TotalCPMManagedAccounts) * 100).toFixed(2) + '%';
+            document.getElementById('remediablePercent').textContent = 
+                ((metricsData.RemediableFailedAccounts / metricsData.FailedAccounts) * 100).toFixed(2) + '%';
+            
+            document.getElementById('projectedCompliance').textContent = metricsData.ProjectedCompliancePercent + '%';
+            document.getElementById('complianceIncrease').textContent = '+' + metricsData.ProjectedComplianceIncrease + '%';
+        }
+
+        function renderCharts() {
+            // Compliance Overview Pie Chart
+            const complianceCtx = document.getElementById('complianceChart').getContext('2d');
+            charts.compliance = new Chart(complianceCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Compliant', 'Failed'],
+                    datasets: [{
+                        data: [metricsData.CompliantAccounts, metricsData.FailedAccounts],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Projection Bar Chart
+            const projectionCtx = document.getElementById('projectionChart').getContext('2d');
+            charts.projection = new Chart(projectionCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Current', 'Projected'],
+                    datasets: [{
+                        label: 'Compliance %',
+                        data: [metricsData.OriginalCompliancePercent, metricsData.ProjectedCompliancePercent],
+                        backgroundColor: ['#667eea', '#10b981'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Remediation Breakdown
+            const remediationCtx = document.getElementById('remediationChart').getContext('2d');
+            charts.remediation = new Chart(remediationCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Remediable', 'Non-Remediable'],
+                    datasets: [{
+                        data: [metricsData.RemediableFailedAccounts, metricsData.NonRemediableFailedAccounts],
+                        backgroundColor: ['#f59e0b', '#6b7280'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Platform Distribution
+            const platformCounts = {};
+            accountsData.forEach(account => {
+                const platform = account.PlatformID || 'Unknown';
+                platformCounts[platform] = (platformCounts[platform] || 0) + 1;
+            });
+
+            const platformCtx = document.getElementById('platformChart').getContext('2d');
+            charts.platform = new Chart(platformCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(platformCounts),
+                    datasets: [{
+                        label: 'Accounts',
+                        data: Object.values(platformCounts),
+                        backgroundColor: '#8b5cf6',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Populate platform filter
+            const platformFilter = document.getElementById('platformFilter');
+            Object.keys(platformCounts).forEach(platform => {
+                const option = document.createElement('option');
+                option.value = platform;
+                option.textContent = platform;
+                platformFilter.appendChild(option);
+            });
+        }
+
+        function renderTable(filteredData = null) {
+            const data = filteredData || accountsData;
+            const tbody = document.getElementById('accountsTableBody');
+            tbody.innerHTML = '';
+
+            data.forEach(account => {
+                const row = document.createElement('tr');
+                
+                const statusClass = account.ComplianceStatus === 'Compliant' ? 'status-compliant' : 'status-non-compliant';
+                const remediableClass = account.IsRemediable === 'True' ? 'status-remediable' : '';
+                
+                row.innerHTML = `
+                    <td><strong>${account.AccountID}</strong></td>
+                    <td>${account.AccountName}</td>
+                    <td>${account.PlatformID}</td>
+                    <td>${account.Address}</td>
+                    <td><span class="status-badge ${statusClass}">${account.ComplianceStatus}</span></td>
+                    <td><span class="status-badge ${remediableClass}">${account.IsRemediable === 'True' ? 'Yes' : 'No'}</span></td>
+                    <td style="font-size: 0.85em;">${account.RemediationRecommendation}</td>
+                    <td>
+                        <button class="action-button" 
+                                ${account.IsRemediable !== 'True' ? 'disabled' : ''}
+                                onclick="triggerRemediation('${account.AccountID}')">
+                            Remediate
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function triggerRemediation(accountId) {
+            if (confirm(`Trigger remediation for account ${accountId}?\n\nThis will initiate the IBM ICA workflow for password reconciliation.`)) {
+                alert(`Remediation workflow triggered for ${accountId}\n\nWorkflow ID: WF-${Date.now()}\nStatus: Initiated\n\nCheck IBM ICA dashboard for progress.`);
+            }
+        }
+
+        // Filters
+        document.getElementById('statusFilter').addEventListener('change', applyFilters);
+        document.getElementById('platformFilter').addEventListener('change', applyFilters);
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+
+        function applyFilters() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const platformFilter = document.getElementById('platformFilter').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = accountsData.filter(account => {
+                // Status filter
+                if (statusFilter === 'compliant' && account.ComplianceStatus !== 'Compliant') return false;
+                if (statusFilter === 'non-compliant' && account.ComplianceStatus === 'Compliant') return false;
+                if (statusFilter === 'remediable' && account.IsRemediable !== 'True') return false;
+
+                // Platform filter
+                if (platformFilter !== 'all' && account.PlatformID !== platformFilter) return false;
+
+                // Search filter
+                if (searchTerm && !Object.values(account).some(val => 
+                    String(val).toLowerCase().includes(searchTerm))) return false;
+
+                return true;
+            });
+
+            renderTable(filtered);
+        }
+
+        function updateTimestamp() {
+            const timestamp = metricsData.CalculationTimestamp || new Date().toISOString();
+            document.getElementById('timestamp').textContent = 
+                `Last Updated: ${new Date(timestamp).toLocaleString()}`;
+        }
+    </script>
+</body>
+</html>
